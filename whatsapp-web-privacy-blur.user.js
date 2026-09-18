@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         WhatsApp Web Privacy Blur
 // @namespace    https://github.com/bagusarief13/
-// @version      1.0.0
-// @description  Blur sensitive WhatsApp Web previews
+// @version      1.1.0
+// @description  Blur sensitive WhatsApp Web previews and intercept popup notifications
 // @match        https://web.whatsapp.com/*
 // @run-at       document-start
 // @grant        none
@@ -14,6 +14,7 @@
     'use strict';
 
     const BLUR_AMOUNT = '8px';
+    const POPUP_MASK_TEXT = 'You have a new message!';
 
     // ============================================================
     // STATE & PERSISTENCE
@@ -21,10 +22,12 @@
 
     const STORAGE_KEY_CHAT = 'wa_privacy_blur_chat_list';
     const STORAGE_KEY_MSGS = 'wa_privacy_blur_messages';
+    const STORAGE_KEY_POPUP = 'wa_privacy_blur_popups';
     const STORAGE_KEY_COLLAPSED = 'wa_privacy_blur_collapsed';
 
     let isChatListBlurEnabled = localStorage.getItem(STORAGE_KEY_CHAT) !== 'false';
     let isMessagesBlurEnabled = localStorage.getItem(STORAGE_KEY_MSGS) !== 'false';
+    let isPopupInterceptionEnabled = localStorage.getItem(STORAGE_KEY_POPUP) !== 'false';
     let isDockCollapsed = localStorage.getItem(STORAGE_KEY_COLLAPSED) === 'true';
 
     function updateBlurRootClasses() {
@@ -33,10 +36,79 @@
         }
         document.documentElement.classList.toggle('wa-chat-blur-disabled', !isChatListBlurEnabled);
         document.documentElement.classList.toggle('wa-msgs-blur-disabled', !isMessagesBlurEnabled);
+        document.documentElement.classList.toggle('wa-popup-blur-disabled', !isPopupInterceptionEnabled);
     }
 
     // Apply root classes immediately at startup
     updateBlurRootClasses();
+
+
+    // ============================================================
+    // NOTIFICATION & POPUP INTERCEPTION
+    // ============================================================
+
+    function transformNotificationArgs(title, options) {
+        if (!isPopupInterceptionEnabled) {
+            return [title, options];
+        }
+
+        const safeOptions = options ? Object.assign({}, options) : {};
+        safeOptions.body = POPUP_MASK_TEXT;
+        if ('image' in safeOptions) {
+            delete safeOptions.image;
+        }
+
+        // Keep sender/group name in title so you know who the message is from
+        const maskedTitle = title || 'WhatsApp';
+        return [maskedTitle, safeOptions];
+    }
+
+    function initNotificationInterception() {
+        const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+
+        // 1. Intercept window.Notification constructor
+        if (typeof pageWindow.Notification !== 'undefined') {
+            const OriginalNotification = pageWindow.Notification;
+
+            const NotificationProxy = new Proxy(OriginalNotification, {
+                construct(target, args, newTarget) {
+                    const [title, options] = args;
+                    const [maskedTitle, maskedOptions] = transformNotificationArgs(title, options);
+                    return Reflect.construct(target, [maskedTitle, maskedOptions], newTarget);
+                },
+                get(target, prop, receiver) {
+                    const value = Reflect.get(target, prop, receiver);
+                    if (typeof value === 'function') {
+                        return value.bind(target);
+                    }
+                    return value;
+                }
+            });
+
+            try {
+                pageWindow.Notification = NotificationProxy;
+                if (window !== pageWindow) {
+                    window.Notification = NotificationProxy;
+                }
+            } catch (e) {
+                console.warn('[Privacy Blur] Could not override window.Notification:', e);
+            }
+        }
+
+        // 2. Intercept ServiceWorkerRegistration.prototype.showNotification
+        const swReg = pageWindow.ServiceWorkerRegistration || window.ServiceWorkerRegistration;
+        if (typeof swReg !== 'undefined' && swReg.prototype && swReg.prototype.showNotification) {
+            const originalShowNotification = swReg.prototype.showNotification;
+
+            swReg.prototype.showNotification = function (title, options) {
+                const [maskedTitle, maskedOptions] = transformNotificationArgs(title, options);
+                return originalShowNotification.call(this, maskedTitle, maskedOptions);
+            };
+        }
+    }
+
+    // Initialize notification interception immediately at document-start
+    initNotificationInterception();
 
 
     // ============================================================
@@ -263,6 +335,33 @@
 
 
         /* ========================================================
+           POPUP / TOAST NOTIFICATIONS
+           ======================================================== */
+
+        /*
+         * In-page Toast & Notification Popups
+         */
+        html:not(.wa-popup-blur-disabled) [data-animate-toast-in],
+        html:not(.wa-popup-blur-disabled) [role="alert"][class*="toast"],
+        html:not(.wa-popup-blur-disabled) div[class*="toast"]:not(#wa-privacy-toast) {
+            filter: blur(${BLUR_AMOUNT}) !important;
+            transition: filter 0.12s ease !important;
+        }
+
+        html:not(.wa-popup-blur-disabled) [data-animate-toast-in]:hover,
+        html:not(.wa-popup-blur-disabled) [role="alert"][class*="toast"]:hover,
+        html:not(.wa-popup-blur-disabled) div[class*="toast"]:not(#wa-privacy-toast):hover {
+            filter: none !important;
+        }
+
+        html.wa-popup-blur-disabled [data-animate-toast-in],
+        html.wa-popup-blur-disabled [role="alert"][class*="toast"],
+        html.wa-popup-blur-disabled div[class*="toast"]:not(#wa-privacy-toast) {
+            filter: none !important;
+        }
+
+
+        /* ========================================================
            FLOATING PRIVACY CONTROL DOCK & TOAST
            ======================================================== */
 
@@ -380,7 +479,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            max-width: 380px;
+            max-width: 520px;
             opacity: 1;
             transform: scaleX(1);
             transform-origin: left center;
@@ -922,14 +1021,16 @@
             const dot = collapseBtn.querySelector('.wa-privacy-handle-dot');
             if (dot) {
                 dot.classList.remove('partial', 'disabled');
-                if (!isChatListBlurEnabled && !isMessagesBlurEnabled) {
+                const allDisabled = !isChatListBlurEnabled && !isMessagesBlurEnabled && !isPopupInterceptionEnabled;
+                const allEnabled = isChatListBlurEnabled && isMessagesBlurEnabled && isPopupInterceptionEnabled;
+                if (allDisabled) {
                     dot.classList.add('disabled');
-                } else if (!isChatListBlurEnabled || !isMessagesBlurEnabled) {
+                } else if (!allEnabled) {
                     dot.classList.add('partial');
                 }
             }
             collapseBtn.title = isDockCollapsed
-                ? `Privacy Controls (Chats: ${isChatListBlurEnabled ? 'ON' : 'OFF'}, Messages: ${isMessagesBlurEnabled ? 'ON' : 'OFF'}) - Click to Expand (Alt+P)`
+                ? `Privacy Controls (Chats: ${isChatListBlurEnabled ? 'ON' : 'OFF'}, Messages: ${isMessagesBlurEnabled ? 'ON' : 'OFF'}, Popups: ${isPopupInterceptionEnabled ? 'ON' : 'OFF'}) - Click to Expand (Alt+P)`
                 : 'Collapse Privacy Controls (Alt+P)';
         }
 
@@ -951,6 +1052,16 @@
                 badge.textContent = isMessagesBlurEnabled ? 'ON' : 'OFF';
             }
             msgsBtn.title = `Messages Blur: ${isMessagesBlurEnabled ? 'Enabled' : 'Disabled'} (Alt+M)`;
+        }
+
+        const popupBtn = document.getElementById('wa-privacy-toggle-popup-btn');
+        if (popupBtn) {
+            popupBtn.classList.toggle('active', isPopupInterceptionEnabled);
+            const badge = popupBtn.querySelector('.wa-privacy-status-badge');
+            if (badge) {
+                badge.textContent = isPopupInterceptionEnabled ? 'ON' : 'OFF';
+            }
+            popupBtn.title = `Popup Interception: ${isPopupInterceptionEnabled ? 'Enabled' : 'Disabled'} (Alt+N)`;
         }
     }
 
@@ -991,6 +1102,17 @@
 
         if (notify) {
             showToast(`Messages Blur: ${isMessagesBlurEnabled ? 'Enabled' : 'Disabled'}`);
+        }
+    }
+
+    function togglePopupInterception(notify = true) {
+        isPopupInterceptionEnabled = !isPopupInterceptionEnabled;
+        localStorage.setItem(STORAGE_KEY_POPUP, isPopupInterceptionEnabled ? 'true' : 'false');
+        updateBlurRootClasses();
+        updateControlBarUI();
+
+        if (notify) {
+            showToast(`Popup Interception: ${isPopupInterceptionEnabled ? 'Enabled' : 'Disabled'}`);
         }
     }
 
@@ -1087,7 +1209,28 @@
         });
         dockContent.appendChild(msgsBtn);
 
-        // 3. Refresh Reload Button
+        // 3. Popup Messages Interception Toggle Button
+        const popupBtn = document.createElement('button');
+        popupBtn.id = 'wa-privacy-toggle-popup-btn';
+        popupBtn.className = 'wa-privacy-btn' + (isPopupInterceptionEnabled ? ' active' : '');
+        popupBtn.type = 'button';
+        popupBtn.title = `Popup Interception: ${isPopupInterceptionEnabled ? 'Enabled' : 'Disabled'} (Alt+N)`;
+        popupBtn.setAttribute('aria-label', 'Toggle WhatsApp Web Popup Message Interception');
+        popupBtn.innerHTML = `
+            <svg viewBox="0 0 24 24">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+            </svg>
+            <span>Popups</span>
+            <span class="wa-privacy-status-badge">${isPopupInterceptionEnabled ? 'ON' : 'OFF'}</span>
+        `;
+        popupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            togglePopupInterception(true);
+        });
+        dockContent.appendChild(popupBtn);
+
+        // 4. Refresh Reload Button
         const reloadBtn = document.createElement('button');
         reloadBtn.id = 'wa-privacy-reload-btn';
         reloadBtn.className = 'wa-privacy-btn';
@@ -1141,6 +1284,11 @@
             else if (e.altKey && (e.key === 'm' || e.key === 'M')) {
                 e.preventDefault();
                 toggleMessagesBlur(true);
+            }
+            // Alt+N: Toggle Popup Interception
+            else if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+                e.preventDefault();
+                togglePopupInterception(true);
             }
             // Alt+R or Alt+B: Refresh Privacy Blur
             else if (e.altKey && (e.key === 'r' || e.key === 'R' || e.key === 'b' || e.key === 'B')) {

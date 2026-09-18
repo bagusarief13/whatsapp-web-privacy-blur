@@ -78,11 +78,11 @@
          * Direct CSS targeting for instant zero-flash blurring on chat previews
          * so newly arrived messages are blurred immediately on DOM insertion.
          */
-        html:not(.wa-chat-blur-disabled) [data-testid="cell-frame-secondary"] span[dir="ltr"],
-        html:not(.wa-chat-blur-disabled) [data-testid="cell-frame-secondary"] span[dir="auto"],
-        html:not(.wa-chat-blur-disabled) [data-testid="cell-frame-secondary"] span[dir="rtl"],
-        html:not(.wa-chat-blur-disabled) [data-testid="cell-frame-subtitle"] span,
-        html:not(.wa-chat-blur-disabled) [data-testid="last-msg-status"] span {
+        :where(html:not(.wa-chat-blur-disabled)) [data-testid="cell-frame-secondary"] span[dir="ltr"],
+        :where(html:not(.wa-chat-blur-disabled)) [data-testid="cell-frame-secondary"] span[dir="auto"],
+        :where(html:not(.wa-chat-blur-disabled)) [data-testid="cell-frame-secondary"] span[dir="rtl"],
+        :where(html:not(.wa-chat-blur-disabled)) [data-testid="cell-frame-subtitle"] span,
+        :where(html:not(.wa-chat-blur-disabled)) [data-testid="last-msg-status"] span {
             filter: blur(${BLUR_AMOUNT}) !important;
             transition: filter 0.12s ease !important;
         }
@@ -118,24 +118,71 @@
          * When hovering ANY part of the chat row / list item,
          * reveal both the contact name and the message preview together.
          */
-        .wa-privacy-chat-row:hover .wa-privacy-chat-name,
-        .wa-privacy-chat-row:hover .wa-privacy-chat-preview,
-        .wa-privacy-chat-row:hover .wa-privacy-chat-preview-fallback,
-        .wa-privacy-chat-row:hover [data-testid="cell-frame-secondary"] span,
-        .wa-privacy-chat-row:hover [data-testid="cell-frame-subtitle"] span,
-        .wa-privacy-chat-row:hover [data-testid="last-msg-status"] span,
-        [role="listitem"]:hover .wa-privacy-chat-name,
-        [role="listitem"]:hover .wa-privacy-chat-preview,
-        [role="listitem"]:hover .wa-privacy-chat-preview-fallback,
-        [role="listitem"]:hover [data-testid="cell-frame-secondary"] span,
-        [role="listitem"]:hover [data-testid="cell-frame-subtitle"] span,
-        [role="listitem"]:hover [data-testid="last-msg-status"] span,
-        [role="row"]:hover .wa-privacy-chat-name,
-        [role="row"]:hover .wa-privacy-chat-preview,
-        [role="row"]:hover .wa-privacy-chat-preview-fallback,
-        [role="row"]:hover [data-testid="cell-frame-secondary"] span,
-        [role="row"]:hover [data-testid="cell-frame-subtitle"] span,
-        [role="row"]:hover [data-testid="last-msg-status"] span {
+        html .wa-privacy-chat-row:hover .wa-privacy-chat-name,
+        html .wa-privacy-chat-row:hover .wa-privacy-chat-preview,
+        html .wa-privacy-chat-row:hover .wa-privacy-chat-preview-fallback,
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-secondary"] span,
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-secondary"] span[dir="ltr"],
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-secondary"] span[dir="auto"],
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-secondary"] span[dir="rtl"],
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-subtitle"] span,
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-subtitle"] span[dir="ltr"],
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-subtitle"] span[dir="auto"],
+        html .wa-privacy-chat-row:hover [data-testid="cell-frame-subtitle"] span[dir="rtl"],
+        html .wa-privacy-chat-row:hover [data-testid="last-msg-status"] span,
+        html .wa-privacy-chat-row:hover [data-testid="last-msg-status"] span[dir="ltr"],
+        html .wa-privacy-chat-row:hover [data-testid="last-msg-status"] span[dir="auto"],
+        html .wa-privacy-chat-row:hover [data-testid="last-msg-status"] span[dir="rtl"],
+
+        html [role="listitem"]:hover .wa-privacy-chat-name,
+        html [role="listitem"]:hover .wa-privacy-chat-preview,
+        html [role="listitem"]:hover .wa-privacy-chat-preview-fallback,
+        html [role="listitem"]:hover [data-testid="cell-frame-secondary"] span,
+        html [role="listitem"]:hover [data-testid="cell-frame-secondary"] span[dir="ltr"],
+        html [role="listitem"]:hover [data-testid="cell-frame-secondary"] span[dir="auto"],
+        html [role="listitem"]:hover [data-testid="cell-frame-secondary"] span[dir="rtl"],
+        html [role="listitem"]:hover [data-testid="cell-frame-subtitle"] span,
+        html [role="listitem"]:hover [data-testid="cell-frame-subtitle"] span[dir="ltr"],
+        html [role="listitem"]:hover [data-testid="cell-frame-subtitle"] span[dir="auto"],
+        html [role="listitem"]:hover [data-testid="cell-frame-subtitle"] span[dir="rtl"],
+        html [role="listitem"]:hover [data-testid="last-msg-status"] span,
+        html [role="listitem"]:hover [data-testid="last-msg-status"] span[dir="ltr"],
+        html [role="listitem"]:hover [data-testid="last-msg-status"] span[dir="auto"],
+        html [role="listitem"]:hover [data-testid="last-msg-status"] span[dir="rtl"],
+
+        html [role="row"]:hover .wa-privacy-chat-name,
+        html [role="row"]:hover .wa-privacy-chat-preview,
+        html [role="row"]:hover .wa-privacy-chat-preview-fallback,
+        html [role="row"]:hover [data-testid="cell-frame-secondary"] span,
+        html [role="row"]:hover [data-testid="cell-frame-secondary"] span[dir="ltr"],
+        html [role="row"]:hover [data-testid="cell-frame-secondary"] span[dir="auto"],
+        html [role="row"]:hover [data-testid="cell-frame-secondary"] span[dir="rtl"],
+        html [role="row"]:hover [data-testid="cell-frame-subtitle"] span,
+        html [role="row"]:hover [data-testid="cell-frame-subtitle"] span[dir="ltr"],
+        html [role="row"]:hover [data-testid="cell-frame-subtitle"] span[dir="auto"],
+        html [role="row"]:hover [data-testid="cell-frame-subtitle"] span[dir="rtl"],
+        html [role="row"]:hover [data-testid="last-msg-status"] span,
+        html [role="row"]:hover [data-testid="last-msg-status"] span[dir="ltr"],
+        html [role="row"]:hover [data-testid="last-msg-status"] span[dir="auto"],
+        html [role="row"]:hover [data-testid="last-msg-status"] span[dir="rtl"],
+
+        html div.x78zum5.xdl72j9.xdt5ytf:hover .wa-privacy-chat-name,
+        html div.x78zum5.xdl72j9.xdt5ytf:hover .wa-privacy-chat-preview,
+        html div.x78zum5.xdl72j9.xdt5ytf:hover [data-testid="cell-frame-secondary"] span,
+        html div.x78zum5.xdl72j9.xdt5ytf:hover [data-testid="cell-frame-secondary"] span[dir="ltr"],
+        html div.x78zum5.xdl72j9.xdt5ytf:hover [data-testid="cell-frame-secondary"] span[dir="auto"],
+        html div.x78zum5.xdl72j9.xdt5ytf:hover [data-testid="cell-frame-secondary"] span[dir="rtl"],
+
+        /* Direct element hover */
+        .wa-privacy-chat-name:hover,
+        .wa-privacy-chat-preview:hover,
+        .wa-privacy-chat-preview-fallback:hover,
+        [data-testid="cell-frame-secondary"] span:hover,
+        [data-testid="cell-frame-secondary"] span[dir="ltr"]:hover,
+        [data-testid="cell-frame-secondary"] span[dir="auto"]:hover,
+        [data-testid="cell-frame-secondary"] span[dir="rtl"]:hover,
+        [data-testid="cell-frame-subtitle"] span:hover,
+        [data-testid="last-msg-status"] span:hover {
             filter: none !important;
         }
 

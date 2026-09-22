@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WhatsApp Web Privacy Blur
 // @namespace    https://github.com/bagusarief13/
-// @version      1.1.0
+// @version      1.1.1
 // @description  Blur sensitive WhatsApp Web previews and intercept popup notifications
 // @match        https://web.whatsapp.com/*
 // @run-at       document-start
@@ -286,6 +286,21 @@
             filter: none !important;
         }
 
+        /*
+         * Direct CSS targeting for grouped stickers & sticker containers
+         * ensures instant zero-flash blurring when stickers arrive in DOM.
+         */
+        :where(html:not(.wa-msgs-blur-disabled)) [data-id*="grouped-sticker"],
+        :where(html:not(.wa-msgs-blur-disabled)) [data-testid="sticker-container"] {
+            filter: blur(${BLUR_AMOUNT}) !important;
+            transition: filter 0.12s ease !important;
+        }
+
+        :where(html:not(.wa-msgs-blur-disabled)) [data-id*="grouped-sticker"]:hover,
+        :where(html:not(.wa-msgs-blur-disabled)) [data-testid="sticker-container"]:hover {
+            filter: none !important;
+        }
+
         html:not(.wa-msgs-blur-disabled) .wa-privacy-blur {
             filter: blur(${BLUR_AMOUNT}) !important;
             transition: filter 0.12s ease !important;
@@ -326,6 +341,8 @@
          * OVERRIDE: Message Area blur explicitly disabled
          */
         html.wa-msgs-blur-disabled .wa-privacy-message,
+        html.wa-msgs-blur-disabled [data-id*="grouped-sticker"],
+        html.wa-msgs-blur-disabled [data-testid="sticker-container"],
         html.wa-msgs-blur-disabled .wa-privacy-blur,
         html.wa-msgs-blur-disabled .wa-privacy-phone,
         html.wa-msgs-blur-disabled .wa-privacy-time,
@@ -942,6 +959,7 @@
             if (element instanceof HTMLElement) {
                 const messageContainer =
                     element.closest('[data-testid="msg-container"]') ||
+                    element.closest('[data-id*="grouped-sticker"]') ||
                     element.closest('[role="row"]') ||
                     element;
 
@@ -955,6 +973,21 @@
         ).forEach((element) => {
             if (element instanceof HTMLElement) {
                 markMessage(element);
+            }
+        });
+
+        // Grouped stickers and sticker containers
+        document.querySelectorAll(
+            '[data-id*="grouped-sticker"], [data-testid="sticker-container"]'
+        ).forEach((element) => {
+            if (element instanceof HTMLElement) {
+                const messageContainer =
+                    element.closest('[data-id*="grouped-sticker"]') ||
+                    element.closest('[data-testid="msg-container"]') ||
+                    element.closest('.focusable-list-item') ||
+                    element;
+
+                markMessage(messageContainer);
             }
         });
     }

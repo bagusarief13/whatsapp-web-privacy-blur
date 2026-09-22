@@ -1,6 +1,6 @@
 # 🔒 WhatsApp Web Privacy Blur
 
-[![Version](https://img.shields.io/badge/version-1.1.0-00a884?style=flat-square)](https://github.com/bagusarief13/whatsapp-web-privacy-blur)
+[![Version](https://img.shields.io/badge/version-1.1.1-00a884?style=flat-square)](https://github.com/bagusarief13/whatsapp-web-privacy-blur)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Supported-black?style=flat-square&logo=tampermonkey)](https://www.tampermonkey.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
